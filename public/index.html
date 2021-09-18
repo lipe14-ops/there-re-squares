@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>there're squares</title>
+        <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div id='rank' class='noshow'>
+            <div>rank:</div>
+            <div id='list'></div>
+        </div>
+        <div id="game" class="noshow">
+            <div>there're squares</div>
+            <canvas id="canvas" width="400" height="400"></canvas>  
+        </div>
+        <div id="menu" class="board">
+            <input type="text" id="nickname" maxLength="15" placeholder="nickname">
+            <input type="button" id="play" value="play">
+        </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.js"></script>
+    <script type="module" src="./page.js"></script>
+    <script type='module'>
+        import renderGame from './render.js'
+        import createInput from './input.js'
+        import hideCursorWhenIdle from './cursor.js'
+        
+        const play = document.getElementById('play')
+        const nickname = document.getElementById('nickname')
+        const board = document.getElementById('game')
+        const menu = document.getElementById('menu')
+        const rank = document.getElementById('rank')
+        const rankList = document.getElementById('list')
+
+        const input = createInput()
+        const socket = io()
+
+        let gameState = {
+            players: {},
+            targets: {}
+        }
+
+        play.addEventListener('click', () => {
+            menu.className = 'noshow'
+            board.className = 'board'
+            rank.className = ''
+            socket.emit('add player', {nick: nickname.value})
+        })
+
+        socket.on('connect', () => {
+            const render = renderGame(socket.id)
+
+            socket.on('setup', (state) => {
+                gameState = state
+                render.renderAll(gameState)
+                render.renderRank(gameState, rankList)
+            })
+
+            socket.on('disconnected', (message) => {
+                menu.className = 'board'
+                board.className = 'noshow'
+                rank.className = 'noshow'
+            })
+
+            document.addEventListener('keydown', (event) => {
+                if (input.filterInputs(event.key)) {
+                    socket.emit('move player', {id: socket.id, keyPressed: event.key})
+                }}
+            )
+        })        
+
+    </script>
+</body>
+</html>
